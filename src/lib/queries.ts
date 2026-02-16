@@ -38,9 +38,10 @@ export async function getOverview() {
 export async function getTopAreas(limit = 15) {
   return queryWithStats<{ area: string; artists: number }>(`
     SELECT
-      ifNull(toString(area_id), 'Unknown') AS area,
-      count() AS artists
-    FROM mb_artist
+      if(r.area_id = 0, 'Unknown', coalesce(a.name, toString(r.area_id))) AS area,
+      sum(r.artists) AS artists
+    FROM mb_artist_area_rollup r
+    LEFT ANY JOIN mb_area a ON a.area_id = r.area_id
     GROUP BY area
     ORDER BY artists DESC
     LIMIT ${limit}
@@ -91,8 +92,11 @@ export async function getParetoByArea(limit = 25) {
     cumulative_pct: number;
   }>(`
     WITH area_counts AS (
-      SELECT ifNull(toString(area_id), 'Unknown') AS area, count() AS artists
-      FROM mb_artist
+      SELECT
+        if(r.area_id = 0, 'Unknown', coalesce(a.name, toString(r.area_id))) AS area,
+        sum(r.artists) AS artists
+      FROM mb_artist_area_rollup r
+      LEFT ANY JOIN mb_area a ON a.area_id = r.area_id
       GROUP BY area
     ), ranked AS (
       SELECT
@@ -121,8 +125,11 @@ export async function getParetoSummary() {
     pct_of_areas_for_80: number;
   }>(`
     WITH area_counts AS (
-      SELECT ifNull(toString(area_id), 'Unknown') AS area, count() AS artists
-      FROM mb_artist
+      SELECT
+        if(r.area_id = 0, 'Unknown', coalesce(a.name, toString(r.area_id))) AS area,
+        sum(r.artists) AS artists
+      FROM mb_artist_area_rollup r
+      LEFT ANY JOIN mb_area a ON a.area_id = r.area_id
       GROUP BY area
     ), ranked AS (
       SELECT
