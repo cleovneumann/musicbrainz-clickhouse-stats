@@ -1,15 +1,21 @@
-import { getClient } from "./clickhouse";
+import { QueryStats, runJsonQuery } from "./clickhouse";
 
 type JsonRow = Record<string, unknown>;
 
-async function query<T extends JsonRow>(sql: string): Promise<T[]> {
-  const client = getClient();
-  const resultSet = await client.query({ query: sql, format: "JSONEachRow" });
-  return (await resultSet.json()) as T[];
+type QueryWithStats<T extends JsonRow> = {
+  rows: T[];
+  stats: QueryStats;
+};
+
+async function queryWithStats<T extends JsonRow>(
+  sql: string,
+): Promise<QueryWithStats<T>> {
+  const result = await runJsonQuery<T>(sql);
+  return { rows: result.data, stats: result.stats };
 }
 
 export async function getOverview() {
-  const [totals] = await query<{
+  const result = await queryWithStats<{
     artists: number;
     areas: number;
     ended_artists: number;
@@ -23,11 +29,14 @@ export async function getOverview() {
     FROM mb_artist
   `);
 
-  return totals;
+  return {
+    row: result.rows[0],
+    stats: result.stats,
+  };
 }
 
 export async function getTopAreas(limit = 15) {
-  return query<{ area: string; artists: number }>(`
+  return queryWithStats<{ area: string; artists: number }>(`
     SELECT
       ifNull(toString(area_id), 'Unknown') AS area,
       count() AS artists
@@ -39,7 +48,7 @@ export async function getTopAreas(limit = 15) {
 }
 
 export async function getTopInitials(limit = 20) {
-  return query<{ initial: string; artists: number }>(`
+  return queryWithStats<{ initial: string; artists: number }>(`
     SELECT
       if(lengthUTF8(trimBoth(name)) = 0, '#', upper(substringUTF8(trimBoth(name), 1, 1))) AS initial,
       count() AS artists
@@ -51,7 +60,7 @@ export async function getTopInitials(limit = 20) {
 }
 
 export async function getMostEditedArtists(limit = 15) {
-  return query<{ name: string; edits: number }>(`
+  return queryWithStats<{ name: string; edits: number }>(`
     SELECT
       name,
       max(edits) AS edits
@@ -63,7 +72,7 @@ export async function getMostEditedArtists(limit = 15) {
 }
 
 export async function getRecentlyUpdated(limit = 10) {
-  return query<{ name: string; last_updated: string | null }>(`
+  return queryWithStats<{ name: string; last_updated: string | null }>(`
     SELECT
       name,
       last_updated
