@@ -54,6 +54,9 @@ export default async function Home() {
         <p className="text-black/70 dark:text-white/70">
           Fast exploratory dashboard on top of a sizable MusicBrainz artist dataset.
         </p>
+        <p className="text-sm text-black/60 dark:text-white/60">
+          Source code: <a className="underline" href="https://github.com/cleovneumann/musicbrainz-clickhouse-stats" target="_blank" rel="noreferrer">github.com/cleovneumann/musicbrainz-clickhouse-stats</a>
+        </p>
         <QueryCost stats={overview.stats} />
       </header>
 
