@@ -75,10 +75,22 @@ Open: http://localhost:3000
 
 ## Deploying to Vercel
 
-1. Push this repo to GitHub
-2. Import repo in Vercel
-3. Add env vars from `.env.example`
+This repo is prepped for Vercel:
+- `vercel.json` pins deployment region to `fra1` (close to EU ClickHouse region)
+- App route is forced to Node runtime (`runtime = "nodejs"`) for ClickHouse server-side queries
+
+Steps:
+
+1. Import `cleovneumann/musicbrainz-clickhouse-stats` into Vercel
+2. Framework is auto-detected as Next.js
+3. Add Environment Variables for **Production** (and Preview if needed):
+   - `CLICKHOUSE_URL`
+   - `CLICKHOUSE_USER`
+   - `CLICKHOUSE_PASSWORD`
+   - `CLICKHOUSE_DATABASE` (suggested: `music_stats`)
 4. Deploy
+
+After deployment, trigger a redeploy whenever you rotate DB credentials.
 
 ## Notes
 

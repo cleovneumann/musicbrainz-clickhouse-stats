@@ -1,6 +1,7 @@
 import { InitialsChart } from "@/components/initials-chart";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 import { TopAreasChart } from "@/components/top-areas-chart";
 import {
   getMostEditedArtists,
