@@ -57,6 +57,9 @@ export default async function Home() {
         <p className="text-sm text-black/60 dark:text-white/60">
           Source code: <a className="underline" href="https://github.com/cleovneumann/musicbrainz-clickhouse-stats" target="_blank" rel="noreferrer">github.com/cleovneumann/musicbrainz-clickhouse-stats</a>
         </p>
+        <p className="text-sm text-black/60 dark:text-white/60">
+          Build log / write-up: <a className="underline" href="https://cleovn.dev/til/2026-02-16-building-clickhouse-powered-app-end-to-end" target="_blank" rel="noreferrer">cleovn.dev/til/2026-02-16-building-clickhouse-powered-app-end-to-end</a>
+        </p>
         <QueryCost stats={overview.stats} />
       </header>
 
