@@ -82,3 +82,90 @@ export async function getRecentlyUpdated(limit = 10) {
     LIMIT ${limit}
   `);
 }
+
+export async function getParetoByArea(limit = 25) {
+  return queryWithStats<{
+    rank: number;
+    area: string;
+    artists: number;
+    cumulative_pct: number;
+  }>(`
+    WITH area_counts AS (
+      SELECT ifNull(toString(area_id), 'Unknown') AS area, count() AS artists
+      FROM mb_artist
+      GROUP BY area
+    ), ranked AS (
+      SELECT
+        area,
+        artists,
+        row_number() OVER (ORDER BY artists DESC) AS rank,
+        sum(artists) OVER (ORDER BY artists DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_artists,
+        sum(artists) OVER () AS total_artists
+      FROM area_counts
+    )
+    SELECT
+      rank,
+      area,
+      artists,
+      round(100.0 * cumulative_artists / total_artists, 2) AS cumulative_pct
+    FROM ranked
+    ORDER BY rank ASC
+    LIMIT ${limit}
+  `);
+}
+
+export async function getParetoSummary() {
+  const result = await queryWithStats<{
+    area_count: number;
+    areas_for_80pct: number;
+    pct_of_areas_for_80: number;
+  }>(`
+    WITH area_counts AS (
+      SELECT ifNull(toString(area_id), 'Unknown') AS area, count() AS artists
+      FROM mb_artist
+      GROUP BY area
+    ), ranked AS (
+      SELECT
+        row_number() OVER (ORDER BY artists DESC) AS rank,
+        count() OVER () AS area_count,
+        sum(artists) OVER (ORDER BY artists DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_artists,
+        sum(artists) OVER () AS total_artists
+      FROM area_counts
+    )
+    SELECT
+      any(area_count) AS area_count,
+      minIf(rank, (100.0 * cumulative_artists / total_artists) >= 80) AS areas_for_80pct,
+      round(100.0 * minIf(rank, (100.0 * cumulative_artists / total_artists) >= 80) / any(area_count), 2) AS pct_of_areas_for_80
+    FROM ranked
+  `);
+
+  return { row: result.rows[0], stats: result.stats };
+}
+
+export async function getRollupSpeedDemo(limit = 15) {
+  const [raw, rollup] = await Promise.all([
+    queryWithStats<{ area: string; artists: number }>(`
+      SELECT
+        ifNull(toString(area_id), 'Unknown') AS area,
+        count() AS artists
+      FROM mb_artist
+      GROUP BY area
+      ORDER BY artists DESC
+      LIMIT ${limit}
+    `),
+    queryWithStats<{ area: string; artists: number }>(`
+      SELECT
+        if(area_id = 0, 'Unknown', toString(area_id)) AS area,
+        sum(artists) AS artists
+      FROM mb_artist_area_rollup
+      GROUP BY area
+      ORDER BY artists DESC
+      LIMIT ${limit}
+    `),
+  ]);
+
+  return {
+    raw,
+    rollup,
+  };
+}

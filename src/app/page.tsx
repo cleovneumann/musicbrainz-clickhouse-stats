@@ -1,10 +1,14 @@
 import { InitialsChart } from "@/components/initials-chart";
+import { ParetoChart } from "@/components/pareto-chart";
 import { TopAreasChart } from "@/components/top-areas-chart";
 import { QueryStats } from "@/lib/clickhouse";
 import {
   getMostEditedArtists,
   getOverview,
+  getParetoByArea,
+  getParetoSummary,
   getRecentlyUpdated,
+  getRollupSpeedDemo,
   getTopAreas,
   getTopInitials,
 } from "@/lib/queries";
@@ -31,13 +35,17 @@ function QueryCost({ stats }: { stats: QueryStats }) {
 }
 
 export default async function Home() {
-  const [overview, topAreas, topInitials, mostEdited, recentlyUpdated] = await Promise.all([
-    getOverview(),
-    getTopAreas(15),
-    getTopInitials(20),
-    getMostEditedArtists(12),
-    getRecentlyUpdated(10),
-  ]);
+  const [overview, topAreas, topInitials, mostEdited, recentlyUpdated, pareto, paretoSummary, speedDemo] =
+    await Promise.all([
+      getOverview(),
+      getTopAreas(15),
+      getTopInitials(20),
+      getMostEditedArtists(12),
+      getRecentlyUpdated(10),
+      getParetoByArea(25),
+      getParetoSummary(),
+      getRollupSpeedDemo(15),
+    ]);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 p-6 sm:p-8">
@@ -68,6 +76,37 @@ export default async function Home() {
             <QueryCost stats={topInitials.stats} />
           </div>
           <InitialsChart data={topInitials.rows} />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-black/10 p-4 dark:border-white/10">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-black/70 dark:text-white/80">Pareto concentration</h2>
+          <QueryCost stats={pareto.stats} />
+        </div>
+        <p className="mb-3 text-sm text-black/70 dark:text-white/70">
+          <span className="font-semibold">{paretoSummary.row.areas_for_80pct}</span> out of{" "}
+          <span className="font-semibold">{paretoSummary.row.area_count}</span> areas ({" "}
+          <span className="font-semibold">{paretoSummary.row.pct_of_areas_for_80}%</span>) cover 80% of artists.
+        </p>
+        <ParetoChart data={pareto.rows} />
+      </section>
+
+      <section className="rounded-xl border border-black/10 p-4 dark:border-white/10">
+        <h2 className="mb-3 text-sm font-semibold text-black/70 dark:text-white/80">
+          Materialized rollup speed demo (same top-area query)
+        </h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="rounded-lg border border-black/10 p-3 dark:border-white/10">
+            <p className="mb-2 text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Raw table</p>
+            <QueryCost stats={speedDemo.raw.stats} />
+          </div>
+          <div className="rounded-lg border border-black/10 p-3 dark:border-white/10">
+            <p className="mb-2 text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
+              Materialized rollup
+            </p>
+            <QueryCost stats={speedDemo.rollup.stats} />
+          </div>
         </div>
       </section>
 
