@@ -124,18 +124,21 @@ export async function getParetoSummary() {
       SELECT ifNull(toString(area_id), 'Unknown') AS area, count() AS artists
       FROM mb_artist
       GROUP BY area
-    )
-    SELECT
-      max(area_count) AS area_count,
-      minIf(rank, cumulative_pct >= 80) AS areas_for_80pct,
-      round(100.0 * minIf(rank, cumulative_pct >= 80) / max(area_count), 2) AS pct_of_areas_for_80
-    FROM (
+    ), ranked AS (
       SELECT
         row_number() OVER (ORDER BY artists DESC) AS rank,
         count() OVER () AS area_count,
         100.0 * sum(artists) OVER (ORDER BY artists DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) / sum(artists) OVER () AS cumulative_pct
       FROM area_counts
     )
+    SELECT
+      area_count,
+      rank AS areas_for_80pct,
+      round(100.0 * rank / area_count, 2) AS pct_of_areas_for_80
+    FROM ranked
+    WHERE cumulative_pct >= 80
+    ORDER BY rank ASC
+    LIMIT 1
   `);
 
   return { row: result.rows[0], stats: result.stats };
