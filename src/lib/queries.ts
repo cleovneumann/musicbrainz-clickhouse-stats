@@ -93,10 +93,11 @@ export async function getParetoByArea(limit = 25) {
   }>(`
     WITH area_counts AS (
       SELECT
-        if(r.area_id = 0, 'Unknown', coalesce(a.name, toString(r.area_id))) AS area,
+        coalesce(a.name, toString(r.area_id)) AS area,
         sum(r.artists) AS artists
       FROM mb_artist_area_rollup r
       LEFT ANY JOIN mb_area a ON a.area_id = r.area_id
+      WHERE r.area_id != 0
       GROUP BY area
     ), ranked AS (
       SELECT
@@ -126,10 +127,11 @@ export async function getParetoSummary() {
   }>(`
     WITH area_counts AS (
       SELECT
-        if(r.area_id = 0, 'Unknown', coalesce(a.name, toString(r.area_id))) AS area,
+        coalesce(a.name, toString(r.area_id)) AS area,
         sum(r.artists) AS artists
       FROM mb_artist_area_rollup r
       LEFT ANY JOIN mb_area a ON a.area_id = r.area_id
+      WHERE r.area_id != 0
       GROUP BY area
     ), ranked AS (
       SELECT
